@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#7c3aed" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOGWARTS+</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --accent: #D4AF37; 
+            --accent-hover: #F3E5AB;
+            --bg-dark: #0a0a0d;
+            --text-main: #ffffff;
+            --text-muted: #9ca3af;
+            --glass-bg: rgba(18, 18, 24, 0.65);
+            --glass-border: rgba(212, 175, 55, 0.2);
+            --glass-blur: blur(25px);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg-dark) url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') center/cover no-repeat fixed; color: var(--text-main); height: 100vh; overflow: hidden; }
+        ::-webkit-scrollbar { display: none; }
+
+        .toast { position: fixed; top: -60px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 30px; font-weight: 600; font-size: 14px; z-index: 10000; transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .toast.show { top: 20px; }
+
+        .screen { display: none; width: 100%; height: 100vh; position: absolute; top: 0; left: 0; z-index: 10; }
+        .screen.active { display: flex; align-items: center; justify-content: center; }
+
+        .glass-panel { background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6); }
+
+        .app-logo { font-family: 'Cinzel', serif; font-size: 28px; font-weight: 900; color: var(--accent); letter-spacing: 2px; }
+        .app-logo span { color: #fff; }
+
+        .auth-box, .pin-box { width: 90%; max-width: 400px; padding: 40px; border-radius: 24px; text-align: center; }
+        .auth-tabs { display: flex; margin: 25px 0; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 4px; }
+        .auth-tab { flex: 1; padding: 10px; border: none; background: transparent; color: var(--text-muted); font-weight: 600; cursor: pointer; border-radius: 8px; transition: 0.3s; }
+        .auth-tab.active { background: var(--accent); color: #000; }
+        .auth-form { display: flex; flex-direction: column; gap: 15px; }
+        .auth-form.hidden { display: none; }
+        .form-group label { display: block; text-align: left; margin-bottom: 5px; color: var(--accent); font-size: 13px; }
+        .form-group input, .form-group select { width: 100%; padding: 14px; border-radius: 12px; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--glass-border); color: white; outline: none; font-size: 14px; }
+        .btn-primary { background: var(--accent); color: #000; font-weight: 700; padding: 14px; border-radius: 12px; border: none; cursor: pointer; transition: 0.3s; margin-top: 10px; width: 100%; }
+        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-2px); }
+
+        .user-avatar-preview { width: 70px; height: 70px; border-radius: 50%; background: rgba(214, 175, 55, 0.2); border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 30px; color: var(--accent); margin: 0 auto 15px auto; }
+        .pin-dots { display: flex; justify-content: center; gap: 15px; margin: 20px 0 30px 0; }
+        .pin-dots .dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--accent); transition: 0.2s; }
+        .pin-dots .dot.filled { background: var(--accent); }
+        .pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .pin-keypad button { padding: 15px; border-radius: 50%; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; font-size: 18px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .pin-keypad button:active { background: var(--accent); color: #000; }
+
+        .app-container { width: 95%; max-width: 1450px; height: 90vh; border-radius: 28px; display: flex; overflow: hidden; }
+        .sidebar { width: 240px; padding: 30px 20px; border-right: 1px solid var(--glass-border); display: flex; flex-direction: column; gap: 40px; }
+        .nav-menu { display: flex; flex-direction: column; gap: 10px; }
+        .menu-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; color: var(--text-muted); cursor: pointer; transition: 0.3s; }
+        .menu-item:hover, .menu-item.active { background: rgba(212, 175, 55, 0.15); color: var(--accent); }
+        .main-content { flex: 1; padding: 25px 35px; overflow-y: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; gap: 12px; }
+        .header-right { display: flex; align-items: center; gap: 10px; }
+        .btn-install-mini { display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px; border-radius: 20px; background: rgba(212, 175, 55, 0.14); border: 1px solid var(--glass-border); color: var(--accent); font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.25s; white-space: nowrap; }
+        .btn-install-mini:hover { background: var(--accent); color: #000; transform: translateY(-1px); }
+        .search-box { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border); padding: 10px 18px; border-radius: 20px; width: 300px; }
+        .search-box input { background: transparent; border: none; color: white; outline: none; width: 100%; }
+
+        .profile-wrapper { position: relative; }
+        .user-profile { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); padding: 6px 16px 6px 6px; border-radius: 30px; cursor: pointer; transition: 0.3s; }
+        .user-profile:hover { border-color: var(--accent); }
+        .user-profile i.fa-chevron-down { transition: transform 0.3s ease; font-size: 11px; }
+        .user-profile i.fa-chevron-down.rotate { transform: rotate(180deg); }
+        .avatar-icon { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #000; display: flex; align-items: center; justify-content: center; }
+
+        .dropdown { position: absolute; top: 130%; right: 0; width: 210px; padding: 8px; border-radius: 16px; display: flex; flex-direction: column; gap: 4px; z-index: 100; opacity: 0; visibility: hidden; transform: translateY(-12px) scale(0.95); transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; }
+        .dropdown.show { opacity: 1; visibility: visible; transform: translateY(0) scale(1); pointer-events: auto; }
+        .dropdown-item { padding: 10px 12px; border-radius: 10px; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; gap: 10px; font-size: 13px; transition: 0.2s; }
+        .dropdown-item:hover { background: rgba(255,255,255,0.1); color: #fff; transform: translateX(3px); }
+        .dropdown-item.danger { color: #ef4444; }
+        .dropdown-divider { height: 1px; background: var(--glass-border); margin: 4px 0; }
+
+        .hero-banner { position: relative; height: 280px; border-radius: 20px; overflow: hidden; margin-bottom: 30px; display: flex; align-items: center; padding: 40px; }
+        .hero-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; filter: brightness(0.4); }
+        .hero-content { position: relative; z-index: 2; max-width: 500px; }
+        .hero-tag { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 2px; }
+        .hero-content h1 { font-family: 'Cinzel', serif; font-size: 28px; margin: 8px 0; }
+        .hero-content p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.4; }
+        .btn-watch { background: var(--accent); color: #000; border: none; padding: 10px 22px; border-radius: 10px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .btn-watch:hover { background: var(--accent-hover); transform: scale(1.05); }
+
+        .content-section { margin-bottom: 35px; }
+        .content-section.hidden { display: none; }
+        .section-title { font-family: 'Cinzel', serif; font-size: 20px; color: var(--accent); margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; }
+        .card { background: rgba(0,0,0,0.4); border-radius: 16px; overflow: hidden; border: 1px solid var(--glass-border); cursor: pointer; transition: 0.3s; }
+        .card:hover { transform: translateY(-6px); border-color: var(--accent); }
+        .card img { width: 100%; height: 230px; object-fit: cover; }
+        .card-info { padding: 12px; }
+        .card-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .btn-card { width: 100%; padding: 8px; border-radius: 8px; background: rgba(212, 175, 55, 0.15); border: 1px solid var(--glass-border); color: var(--accent); font-weight: 600; font-size: 12px; cursor: pointer; }
+        .progress-bar { height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+        .progress-fill { height: 100%; background: var(--accent); }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-overlay.active { display: flex; }
+        .modal-card { width: 90%; max-width: 420px; padding: 30px; border-radius: 20px; position: relative; }
+        .close-modal { position: absolute; top: 20px; right: 20px; cursor: pointer; color: var(--text-muted); font-size: 18px;}
+        .close-modal:hover { color: #fff; }
+
+        .video-container { width: 100vw; height: 100vh; max-width: 100vw; max-height: 100vh; background: #000; position: fixed; top: 0; left: 0; z-index: 99999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .video-container video { width: 100%; height: 100%; object-fit: contain; }
+        .video-overlay-title { position: absolute; top: 20px; left: 25px; color: #fff; font-size: 18px; font-family: 'Cinzel', serif; z-index: 20; text-shadow: 0 2px 10px rgba(0,0,0,0.8); transition: opacity 0.4s; }
+        .close-video { position: absolute; top: 20px; right: 25px; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); color: #fff; width: 45px; height: 45px; border-radius: 50%; font-size: 22px; cursor: pointer; z-index: 20; display: flex; align-items: center; justify-content: center; transition: all 0.4s; }
+        .close-video:hover { background: var(--accent); color: #000; transform: scale(1.1); }
+
+        .custom-controls { position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 50%, transparent 100%); padding: 30px 25px 15px 25px; display: flex; flex-direction: column; gap: 15px; z-index: 20; transition: opacity 0.4s ease; }
+        .progress-area { width: 100%; height: 10px; background: transparent; cursor: pointer; display: flex; align-items: center; }
+        .progress-bar-video { width: 100%; height: 5px; background: rgba(255,255,255,0.2); border-radius: 3px; position: relative; transition: 0.2s; }
+        .progress-area:hover .progress-bar-video { height: 8px; }
+        .progress-fill-video { height: 100%; background: var(--accent); border-radius: 3px; width: 0%; position: relative; pointer-events: none; }
+        .progress-fill-video::after { content: ''; position: absolute; right: -5px; top: 50%; transform: translateY(-50%); width: 12px; height: 12px; background: #fff; border-radius: 50%; opacity: 0; transition: 0.2s; }
+        .progress-area:hover .progress-fill-video::after { opacity: 1; }
+
+        .controls-main { display: flex; justify-content: space-between; align-items: center; }
+        .controls-left, .controls-right { display: flex; align-items: center; gap: 20px; }
+        .controls-main button { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
+        .controls-main button:hover { color: var(--accent); transform: scale(1.15); }
+
+        #volume-slider { width: 80px; cursor: pointer; accent-color: var(--accent); height: 4px; }
+        .time-display { color: #fff; font-size: 14px; font-weight: 500; font-family: monospace; letter-spacing: 1px; margin-left: 10px; }
+
+        .settings-wrapper { position: relative; }
+        .settings-menu { position: absolute; bottom: 180%; right: -20px; width: 160px; background: rgba(18, 18, 24, 0.95); border: 1px solid var(--glass-border); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 5px; opacity: 0; visibility: hidden; transform: translateY(15px); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .settings-menu.show { opacity: 1; visibility: visible; transform: translateY(0); }
+        .settings-menu h4 { font-size: 12px; color: var(--accent); margin-bottom: 5px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;}
+        .quality-option { padding: 8px; border-radius: 8px; color: #fff; font-size: 13px; cursor: pointer; transition: 0.2s; text-align: center; }
+        .quality-option:hover { background: rgba(255,255,255,0.1); }
+        .quality-option.active { background: var(--accent); color: #000; font-weight: bold; }
+
+        .magical-alert { text-align: center; }
+        .magic-icon { font-size: 45px; color: var(--accent); margin-bottom: 15px; animation: pulse 1.5s infinite alternate; }
+        @keyframes pulse { from { transform: scale(1); opacity: 0.8; } to { transform: scale(1.2); opacity: 1; } }
+
+        @media (max-width: 768px) {
+            body { overflow: auto; }
+            .screen { position: relative; min-height: 100vh; height: auto; }
+            .app-container { flex-direction: column; height: auto; min-height: 100vh; width: 100%; border-radius: 0; }
+            .sidebar { width: 100%; padding: 15px 20px; flex-direction: row; justify-content: space-between; align-items: center; border-right: none; border-bottom: 1px solid var(--glass-border); }
+            .nav-menu { flex-direction: row; }
+            .menu-item span { display: none; }
+            .main-content { padding: 20px 15px; }
+            .hero-banner { padding: 20px; height: 220px; }
+            .hero-content h1 { font-size: 20px; }
+            .hero-content p { display: none; }
+            .search-box { width: 150px; }
+            .btn-install-mini span { display: none; }
+            .btn-install-mini { padding: 8px 10px; }
+            .cards-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+            .card img { height: 170px; }
+            .controls-main { flex-wrap: wrap; gap: 10px; }
+            #volume-slider { width: 60px; }
+            .time-display { font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- BİLDİRİM TOAST -->
+    <div id="toast-notification" class="toast"></div>
+
+    <!-- 1. AUTH EKRANI -->
+    <div id="auth-screen" class="screen active">
+        <div class="glass-panel auth-box">
+            <div class="app-logo">HOGWARTS<span>+</span></div>
+            <div class="auth-tabs">
+                <button id="tab-login" class="auth-tab active" onclick="app.switchAuthTab('login')" data-i18n="tab_login">Giriş Yap</button>
+                <button id="tab-register" class="auth-tab" onclick="app.switchAuthTab('register')" data-i18n="tab_register">Kayıt Ol</button>
+            </div>
+
+            <form id="form-login" class="auth-form" onsubmit="app.handleLogin(event)">
+                <div class="form-group"><input type="text" id="login-identity" data-i18n-ph="ph_identity" placeholder="Kullanıcı Adı veya E-posta" required></div>
+                <div class="form-group"><input type="password" id="login-password" data-i18n-ph="ph_pass" placeholder="Şifre" required></div>
+                <button type="submit" class="btn-primary" data-i18n="btn_login">Giriş Yap</button>
+            </form>
+
+            <form id="form-register" class="auth-form hidden" onsubmit="app.handleRegister(event)">
+                <div class="form-group"><input type="text" id="reg-username" data-i18n-ph="ph_user" placeholder="Kullanıcı Adı" required></div>
+                <div class="form-group"><input type="email" id="reg-email" data-i18n-ph="ph_email" placeholder="E-posta" required></div>
+                <div class="form-group"><input type="password" id="reg-password" data-i18n-ph="ph_pass" placeholder="Şifre" required></div>
+                <div class="form-group"><input type="password" id="reg-pin" data-i18n-ph="ph_pin" placeholder="4 Haneli Profil Kilidi (PIN)" maxlength="4" pattern="\d{4}" inputmode="numeric" required></div>
+                <button type="submit" class="btn-primary" data-i18n="btn_reg">Kayıt Ol</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. PROFİL PIN KİLİDİ EKRANI -->
+    <div id="pin-screen" class="screen">
+        <div class="glass-panel pin-box">
+            <div class="user-avatar-preview"><i class="fa-solid fa-hat-wizard"></i></div>
+            <h3 id="pin-user-name">Kullanıcı</h3>
+            <p data-i18n="pin_msg">Profil Kilidini Girin</p>
+            <div class="pin-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+            <div class="pin-keypad">
+                <button onclick="app.pressPin('1')">1</button><button onclick="app.pressPin('2')">2</button><button onclick="app.pressPin('3')">3</button>
+                <button onclick="app.pressPin('4')">4</button><button onclick="app.pressPin('5')">5</button><button onclick="app.pressPin('6')">6</button>
+                <button onclick="app.pressPin('7')">7</button><button onclick="app.pressPin('8')">8</button><button onclick="app.pressPin('9')">9</button>
+                <button onclick="app.clearPin()"><i class="fa-solid fa-rotate-left"></i></button><button onclick="app.pressPin('0')">0</button><button onclick="app.deletePin()"><i class="fa-solid fa-backspace"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. ANA UYGULAMA EKRANI -->
+    <div id="main-screen" class="screen">
+        <div class="glass-panel app-container">
+            <aside class="sidebar">
+                <div class="app-logo">HOGWARTS<span>+</span></div>
+                <nav class="nav-menu">
+                    <div class="menu-item active"><i class="fa-solid fa-wand-magic-sparkles"></i> <span data-i18n="menu_home">Ana Sayfa</span></div>
+                    <div class="menu-item"><i class="fa-solid fa-film"></i> <span data-i18n="menu_movies">Filmler</span></div>
+                    <div class="menu-item"><i class="fa-solid fa-bookmark"></i> <span data-i18n="menu_list">Listem</span></div>
+                </nav>
+            </aside>
+
+            <main class="main-content">
+                                <header class="header">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" data-i18n-ph="ph_search" placeholder="Harry Potter'da ara..." onkeyup="app.searchMovies(this.value)">
+                    </div>
+                    <div class="header-right">
+                       <button id="installAppBtn" title="Uygulamayı İndir" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 20px; background: rgba(212, 175, 55, 0.22); border: 1px solid #D4AF37; color: #D4AF37; font-size: 12px; font-weight: 700; cursor: pointer; flex-shrink: 0;"><i class="fa-solid fa-download"></i> <span>İndir</span></button>
+                        <div class="profile-wrapper">
+                            <div class="user-profile" onclick="app.toggleDropdown(event)">
+                                <div class="avatar-icon"><i class="fa-solid fa-hat-wizard"></i></div>
+                                <span id="ui-username">Kullanıcı</span>
+                                <i class="fa-solid fa-chevron-down" id="dropdown-arrow"></i>
+                            </div>
+                            <div class="glass-panel dropdown" id="profile-dropdown">
+                                <div class="dropdown-item" onclick="app.openModal('profile-modal')"><i class="fa-solid fa-user-pen"></i> <span data-i18n="drop_edit">Profili Düzenle</span></div>
+                                <div class="dropdown-item" onclick="app.openModal('settings-modal')"><i class="fa-solid fa-gear"></i> <span data-i18n="drop_settings">Ayarlar</span></div>
+                                <div class="dropdown-divider"></div>
+                                <div class="dropdown-item danger" onclick="app.logout()"><i class="fa-solid fa-right-from-bracket"></i> <span data-i18n="drop_logout">Çıkış Yap</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="hero-banner">
+                    <img src="hp1.png" alt="Harry Potter ve Felsefe Taşı" class="hero-bg">
+                    <div class="hero-content">
+                        <span class="hero-tag" data-i18n="hero_tag">EFSANEVİ BAŞLANGIÇ</span>
+                        <h1>Harry Potter ve Felsefe Taşı</h1>
+                        <p data-i18n="hero_desc">11. yaş gününde sıradan bir çocuk olmadığını öğrenen Harry Potter, Hogwarts Büyücülük Okulu'na adım atar.</p>
+                        <div class="hero-buttons">
+                            <button class="btn-watch" onclick="app.playVideo('hp1_video.mp4', 'Harry Potter ve Felsefe Taşı', 1)"><i class="fa-solid fa-play"></i> <span data-i18n="btn_watch">Hemen İzle</span></button>
+                        </div>
+                    </div>
+                </div>
+
+                <section id="continue-watching-section" class="content-section hidden">
+                    <h2 class="section-title"><i class="fa-solid fa-clock-rotate-left"></i> <span data-i18n="sec_continue">İzlemeye Devam Et</span></h2>
+                    <div class="cards-grid" id="continue-watching-cards"></div>
+                </section>
+
+                <section class="content-section">
+                    <h2 class="section-title"><i class="fa-solid fa-film"></i> <span data-i18n="sec_all_movies">Harry Potter Serisi</span></h2>
+                    <div class="cards-grid" id="all-movies-cards"></div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- YENİ ÖZEL VİDEO OYNATICI MODAL -->
+    <div id="video-modal" class="modal-overlay">
+        <div class="video-container" id="video-container" onmousemove="app.showControls()">
+            <video id="main-video-player" playsinline webkit-playsinline></video>
+            <button class="close-video" onclick="app.closeVideo()"><i class="fa-solid fa-xmark"></i></button>
+            <h3 id="video-title" class="video-overlay-title">Film Başlığı</h3>
+            <div class="custom-controls" id="custom-controls">
+                <div class="progress-area" id="progress-area" onclick="app.seekVideo(event)">
+                    <div class="progress-bar-video"><div class="progress-fill-video" id="progress-fill-video"></div></div>
+                </div>
+                <div class="controls-main">
+                    <div class="controls-left">
+                        <button id="play-pause-btn" onclick="app.togglePlay()"><i class="fa-solid fa-play"></i></button>
+                        <button id="mute-btn" onclick="app.toggleMute()"><i class="fa-solid fa-volume-high"></i></button>
+                        <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1" oninput="app.changeVolume(this.value)">
+                        <div class="time-display"><span id="current-time">00:00</span> / <span id="total-time">00:00</span></div>
+                    </div>
+                    <div class="controls-right">
+                        <div class="settings-wrapper">
+                            <button id="settings-btn" onclick="app.toggleSettings(event)"><i class="fa-solid fa-gear"></i></button>
+                            <div class="settings-menu" id="quality-menu">
+                                <h4 data-i18n="label_quality">Görüntü Kalitesi</h4>
+                                <!-- BURADA EVENT HATASI DÜZELTİLDİ -->
+                                <div class="quality-option active" onclick="app.setQuality(event, '1080p')">1080p HD</div>
+                                <div class="quality-option" onclick="app.setQuality(event, '720p')">720p</div>
+                                <div class="quality-option" onclick="app.setQuality(event, '480p')">480p</div>
+                            </div>
+                        </div>
+                        <button id="fullscreen-btn" onclick="app.toggleFullScreen()"><i class="fa-solid fa-expand"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALLAR -->
+    <div id="coming-soon-modal" class="modal-overlay">
+        <div class="glass-panel modal-card magical-alert">
+            <i class="fa-solid fa-wand-magic-sparkles magic-icon"></i>
+            <h2 data-i18n="alert_magic">Büyülü Keşif Hazırlıkta!</h2>
+            <p id="coming-soon-text">Bu film yakında Hogwarts+ kütüphanesine eklenecektir.</p>
+            <button class="btn-primary" onclick="app.closeModal('coming-soon-modal')" data-i18n="btn_ok">Tamamdır</button>
+        </div>
+    </div>
+
+    <div id="profile-modal" class="modal-overlay">
+        <div class="glass-panel modal-card">
+            <i class="fa-solid fa-xmark close-modal" onclick="app.closeModal('profile-modal')"></i>
+            <h2 data-i18n="drop_edit">Profili Düzenle</h2>
+            <div class="form-group"><label data-i18n="label_name">Kullanıcı Adı</label><input type="text" id="edit-name"></div>
+            <div class="form-group"><label data-i18n="label_pin">4 Haneli PIN Kilidi</label><input type="password" id="edit-pin" maxlength="4" pattern="\d{4}"></div>
+            <button class="btn-primary" onclick="app.saveProfile()" data-i18n="btn_save">Kaydet</button>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal-overlay">
+        <div class="glass-panel modal-card">
+            <i class="fa-solid fa-xmark close-modal" onclick="app.closeModal('settings-modal')"></i>
+            <h2 data-i18n="drop_settings">Ayarlar</h2>
+            <div class="form-group">
+                <label data-i18n="label_lang">Uygulama Dili / Language</label>
+                <select id="lang-select" onchange="app.changeLang(this.value)">
+                    <option value="tr">Türkçe</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+        </div>
+    </div>
+        <!-- UYGULAMA MANTIĞI -->
+    <script>
+        const translations = {
+            tr: {
+                menu_home: "Ana Sayfa", menu_movies: "Filmler", menu_list: "Listem",
+                drop_edit: "Profili Düzenle", drop_settings: "Ayarlar", drop_logout: "Çıkış Yap",
+                sec_continue: "İzlemeye Devam Et", sec_all_movies: "Harry Potter Serisi",
+                label_name: "Kullanıcı Adı", label_pin: "4 Haneli PIN Kilidi",
+                btn_save: "Kaydet", label_lang: "Uygulama Dili", tab_login: "Giriş Yap", tab_register: "Kayıt Ol",
+                btn_login: "Giriş Yap", btn_reg: "Kayıt Ol", pin_msg: "Profil Kilidini Girin",
+                hero_tag: "EFSANEVİ BAŞLANGIÇ", hero_desc: "11. yaş gününde sıradan bir çocuk olmadığını öğrenen Harry Potter, Hogwarts Büyücülük Okulu'na adım atar.",
+                btn_watch: "Hemen İzle", alert_magic: "Büyülü Keşif Hazırlıkta!", btn_ok: "Tamamdır", label_quality: "Görüntü Kalitesi",
+                err_login: "Kullanıcı adı veya şifre hatalı!", err_reg: "Bu kullanıcı zaten kayıtlı!", msg_reg: "Kayıt başarılı!", msg_out: "Çıkış yapıldı.",
+                ph_identity: "Kullanıcı Adı veya E-posta", ph_pass: "Şifre", ph_user: "Kullanıcı Adı",
+                ph_email: "E-posta", ph_pin: "4 Haneli Profil Kilidi (PIN)", ph_search: "Harry Potter'da ara..."
+            },
+            en: {
+                menu_home: "Home", menu_movies: "Movies", menu_list: "My List",
+                drop_edit: "Edit Profile", drop_settings: "Settings", drop_logout: "Log Out",
+                sec_continue: "Continue Watching", sec_all_movies: "Harry Potter Series",
+                label_name: "Username", label_pin: "4-Digit PIN Lock",
+                btn_save: "Save", label_lang: "App Language", tab_login: "Login", tab_register: "Register",
+                btn_login: "Login", btn_reg: "Register", pin_msg: "Enter Profile PIN Lock",
+                hero_tag: "LEGENDARY BEGINNING", hero_desc: "Learning he is no ordinary boy on his 11th birthday, Harry Potter steps into Hogwarts School of Witchcraft and Wizardry.",
+                btn_watch: "Watch Now", alert_magic: "Magical Discovery Pending!", btn_ok: "Alright", label_quality: "Video Quality",
+                err_login: "Invalid username or password!", err_reg: "User already registered!", msg_reg: "Registration successful!", msg_out: "Logged out.",
+                ph_identity: "Username or Email", ph_pass: "Password", ph_user: "Username",
+                ph_email: "Email", ph_pin: "4-Digit Profile Lock (PIN)", ph_search: "Search in Harry Potter..."
+            }
+        };
+
+        const hpMovies = [
+            { id: 1, title: "Harry Potter ve Felsefe Taşı", img: "hp1.png", video: "hp1_video.mp4", playable: true },
+            { id: 2, title: "Harry Potter ve Sırlar Odası", img: "hp2.png", video: "hp2_video.mp4", playable: true },
+            { id: 3, title: "Harry Potter ve Azkaban Tutsağı", img: "hp3.png", video: "hp3_video.mp4", playable: true },
+            { id: 4, title: "Harry Potter ve Ateş Kadehi", img: "hp4.png", video: "", playable: false },
+            { id: 5, title: "Harry Potter ve Zümrüdüanka Yoldaşlığı", img: "hp5.png", video: "", playable: false },
+            { id: 6, title: "Harry Potter ve Melez Prens", img: "hp6.png", video: "", playable: false },
+            { id: 7, title: "Harry Potter ve Ölüm Yadigârları: Bölüm 1", img: "hp7.png", video: "", playable: false },
+            { id: 8, title: "Harry Potter ve Ölüm Yadigârları: Bölüm 2", img: "hp8.png", video: "", playable: false }
+        ];
+
+        const app = {
+            currentUser: null, enteredPin: "", lang: "tr", activeMovieId: null, controlTimeout: null,
+
+            init: function() {
+                this.renderMovies(hpMovies);
+                this.checkSession();
+                this.setupVideoEvents();
+                
+                window.addEventListener('click', (e) => {
+                    if (!e.target.closest('.profile-wrapper')) {
+                        document.getElementById('profile-dropdown').classList.remove('show');
+                        document.getElementById('dropdown-arrow').classList.remove('rotate');
+                    }
+                    if (!e.target.closest('.settings-wrapper')) {
+                        document.getElementById('quality-menu').classList.remove('show');
+                    }
+                });
+            },
+
+            t: function(key) { return translations[this.lang][key] || key; },
+
+            showToast: function(msgKey, isError = false) {
+                const toast = document.getElementById('toast-notification');
+                toast.innerText = this.t(msgKey);
+                toast.style.background = isError ? 'rgba(239, 68, 68, 0.9)' : 'rgba(214, 175, 55, 0.9)';
+                toast.style.color = isError ? '#fff' : '#000';
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 3000);
+            },
+
+            changeLang: function(l) {
+                this.lang = l;
+                document.querySelectorAll('[data-i18n]').forEach(el => { el.innerText = this.t(el.getAttribute('data-i18n')); });
+                document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = this.t(el.getAttribute('data-i18n-ph')); });
+                this.renderMovies(hpMovies);
+            },
+
+            setupVideoEvents: function() {
+                const video = document.getElementById('main-video-player');
+                video.addEventListener('timeupdate', this.updateProgress);
+                video.addEventListener('loadedmetadata', () => {
+                    document.getElementById('total-time').innerText = this.formatTime(video.duration);
+                });
+                video.addEventListener('ended', () => { document.getElementById('play-pause-btn').innerHTML = '<i class="fa-solid fa-rotate-right"></i>'; });
+            },
+
+            formatTime: function(seconds) {
+                let m = Math.floor(seconds / 60); let s = Math.floor(seconds % 60);
+                return `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
+            },
+
+            togglePlay: function() {
+                const video = document.getElementById('main-video-player');
+                const btn = document.getElementById('play-pause-btn');
+                if(video.paused) { video.play(); btn.innerHTML = '<i class="fa-solid fa-pause"></i>'; }
+                else { video.pause(); btn.innerHTML = '<i class="fa-solid fa-play"></i>'; }
+            },
+
+            updateProgress: function() {
+                const video = document.getElementById('main-video-player');
+                const fill = document.getElementById('progress-fill-video');
+                const curr = document.getElementById('current-time');
+                if(video.duration) {
+                    const percent = (video.currentTime / video.duration) * 100;
+                    fill.style.width = `${percent}%`;
+                    curr.innerText = app.formatTime(video.currentTime);
+                }
+            },
+
+            seekVideo: function(e) {
+                const video = document.getElementById('main-video-player');
+                const bar = document.getElementById('progress-area');
+                const rect = bar.getBoundingClientRect();
+                const pos = (e.clientX - rect.left) / rect.width;
+                video.currentTime = pos * video.duration;
+            },
+            toggleMute: function() {
+                const video = document.getElementById('main-video-player');
+                const btn = document.getElementById('mute-btn');
+                const slider = document.getElementById('volume-slider');
+                video.muted = !video.muted;
+                if(video.muted) { btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>'; slider.value = 0; }
+                else { btn.innerHTML = '<i class="fa-solid fa-volume-high"></i>'; slider.value = video.volume; }
+            },
+
+            changeVolume: function(val) {
+                const video = document.getElementById('main-video-player');
+                const btn = document.getElementById('mute-btn');
+                video.volume = val; video.muted = false;
+                if(val == 0) btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
+                else if(val < 0.5) btn.innerHTML = '<i class="fa-solid fa-volume-low"></i>';
+                else btn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+            },
+
+            toggleFullScreen: function() {
+                const container = document.getElementById('video-container');
+                const btn = document.getElementById('fullscreen-btn');
+                if (!document.fullscreenElement) {
+                    if(container.requestFullscreen) container.requestFullscreen();
+                    else if(container.webkitRequestFullscreen) container.webkitRequestFullscreen();
+                    btn.innerHTML = '<i class="fa-solid fa-compress"></i>';
+                } else {
+                    if(document.exitFullscreen) document.exitFullscreen();
+                    else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+                    btn.innerHTML = '<i class="fa-solid fa-expand"></i>';
+                }
+            },
+
+            toggleSettings: function(e) {
+                e.stopPropagation(); document.getElementById('quality-menu').classList.toggle('show');
+            },
+
+            // HATASI ÇÖZÜLEN FONKSİYON (e eklendi)
+            setQuality: function(e, q) {
+                document.querySelectorAll('.quality-option').forEach(el => el.classList.remove('active'));
+                e.target.classList.add('active');
+                const toast = document.getElementById('toast-notification');
+                toast.innerText = this.lang === 'tr' ? `Kalite ${q} olarak ayarlandı.` : `Quality set to ${q}.`;
+                toast.style.background = 'rgba(214, 175, 55, 0.9)'; toast.style.color = '#000';
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 3000);
+            },
+
+            showControls: function() {
+                const controls = document.getElementById('custom-controls');
+                const title = document.getElementById('video-title');
+                const close = document.querySelector('.close-video');
+                controls.style.opacity = '1'; title.style.opacity = '1'; close.style.opacity = '1';
+                document.getElementById('video-container').style.cursor = 'default';
+                clearTimeout(this.controlTimeout);
+                this.controlTimeout = setTimeout(() => {
+                    const video = document.getElementById('main-video-player');
+                    if(!video.paused) {
+                        controls.style.opacity = '0'; title.style.opacity = '0'; close.style.opacity = '0';
+                        document.getElementById('video-container').style.cursor = 'none';
+                    }
+                }, 3000);
+            },
+
+            playVideo: function(src, title, movieId, startTime = 0) {
+                const modal = document.getElementById('video-modal');
+                const player = document.getElementById('main-video-player');
+                document.getElementById('video-title').innerText = title;
+                this.activeMovieId = movieId;
+                player.src = src;
+                modal.classList.add('active');
+                document.getElementById('play-pause-btn').innerHTML = '<i class="fa-solid fa-pause"></i>';
+                player.onloadedmetadata = () => { player.currentTime = startTime; player.play().catch(() => {}); };
+            },
+
+            closeVideo: function() {
+                const modal = document.getElementById('video-modal');
+                const player = document.getElementById('main-video-player');
+                if (player.currentTime > 0) this.saveProgress(this.activeMovieId, player.currentTime, player.duration);
+                player.pause(); player.src = "";
+                modal.classList.remove('active');
+                if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+            },
+
+            switchAuthTab: function(tab) {
+                document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.auth-form').forEach(f => f.classList.add('hidden'));
+                document.getElementById('tab-' + tab).classList.add('active');
+                document.getElementById('form-' + tab).classList.remove('hidden');
+            },
+            toggleDropdown: function(e) {
+                e.stopPropagation();
+                document.getElementById('profile-dropdown').classList.toggle('show');
+                document.getElementById('dropdown-arrow').classList.toggle('rotate');
+            },
+            handleRegister: function(e) {
+                e.preventDefault();
+                const u = document.getElementById('reg-username').value.trim();
+                const m = document.getElementById('reg-email').value.trim();
+                const p = document.getElementById('reg-password').value;
+                const pin = document.getElementById('reg-pin').value;
+
+                let users = JSON.parse(localStorage.getItem('hgw_users') || '[]');
+                if (users.find(x => x.username === u || x.email === m)) { this.showToast('err_reg', true); return; }
+                users.push({ username: u, email: m, password: p, pin: pin, continueWatching: [] });
+                localStorage.setItem('hgw_users', JSON.stringify(users));
+                this.showToast('msg_reg'); this.switchAuthTab('login'); e.target.reset();
+            },
+            handleLogin: function(e) {
+                e.preventDefault();
+                const id = document.getElementById('login-identity').value.trim();
+                const p = document.getElementById('login-password').value;
+                let users = JSON.parse(localStorage.getItem('hgw_users') || '[]');
+                const user = users.find(x => (x.username === id || x.email === id) && x.password === p);
+                if (!user) { this.showToast('err_login', true); return; }
+                this.currentUser = user;
+                localStorage.setItem('hgw_current_user', JSON.stringify(user));
+                document.getElementById('auth-screen').classList.remove('active');
+                document.getElementById('pin-user-name').innerText = user.username;
+                document.getElementById('pin-screen').classList.add('active');
+                this.clearPin();
+            },
+            checkSession: function() {
+                const session = localStorage.getItem('hgw_current_user');
+                if (session) {
+                    this.currentUser = JSON.parse(session);
+                    document.getElementById('auth-screen').classList.remove('active');
+                    document.getElementById('pin-user-name').innerText = this.currentUser.username;
+                    document.getElementById('pin-screen').classList.add('active');
+                    this.clearPin();
+                }
+            },
+            pressPin: function(num) {
+                if (this.enteredPin.length < 4) { this.enteredPin += num; this.updatePinDots(); }
+                if (this.enteredPin.length === 4) setTimeout(() => this.verifyPin(), 200);
+            },
+            deletePin: function() { this.enteredPin = this.enteredPin.slice(0, -1); this.updatePinDots(); },
+            clearPin: function() { this.enteredPin = ""; this.updatePinDots(); },
+            updatePinDots: function() {
+                const dots = document.querySelectorAll('.pin-dots .dot');
+                dots.forEach((dot, idx) => { idx < this.enteredPin.length ? dot.classList.add('filled') : dot.classList.remove('filled'); });
+            },
+            verifyPin: function() {
+                if (this.enteredPin === this.currentUser.pin) {
+                    document.getElementById('pin-screen').classList.remove('active');
+                    document.getElementById('main-screen').classList.add('active');
+                    document.getElementById('ui-username').innerText = this.currentUser.username;
+                    document.getElementById('edit-name').value = this.currentUser.username;
+                    document.getElementById('edit-pin').value = this.currentUser.pin;
+                    this.renderContinueWatching();
+                    this.clearPin();
+                } else { this.showToast('err_login', true); this.clearPin(); }
+            },
+            logout: function() {
+                localStorage.removeItem('hgw_current_user'); this.currentUser = null;
+                document.getElementById('main-screen').classList.remove('active');
+                document.getElementById('auth-screen').classList.add('active');
+                document.getElementById('login-password').value = ''; this.showToast('msg_out');
+            },
+            renderMovies: function(movies) {
+                const container = document.getElementById('all-movies-cards');
+                container.innerHTML = '';
+                movies.forEach(m => {
+                    const btnText = m.playable ? (this.lang === 'tr' ? 'İzle' : 'Watch') : (this.lang === 'tr' ? 'Yakında' : 'Soon');
+                    container.innerHTML += `
+                        <div class="card" onclick="app.clickMovie(${m.id})">
+                            <img src="${m.img}" alt="${m.title}" onerror="this.src='https://via.placeholder.com/300x450/111/d4af37?text=Afi%C5%9F+Yok'">
+                            <div class="card-info">
+                                <div class="card-title">${m.title}</div>
+                                <button class="btn-card"><i class="fa-solid ${m.playable ? 'fa-play' : 'fa-lock'}"></i> ${btnText}</button>
+                            </div>
+                        </div>`;
+                });
+            },
+            clickMovie: function(id) {
+                const m = hpMovies.find(x => x.id === id);
+                if (m.playable) this.playVideo(m.video, m.title, m.id);
+                else {
+                    document.getElementById('coming-soon-text').innerText = this.lang === 'tr' ? `"${m.title}" yakında!` : `"${m.title}" is coming soon!`;
+                    this.openModal('coming-soon-modal');
+                }
+            },
+            saveProgress: function(id, cur, dur) {
+                if (!id) return;
+                let list = this.currentUser.continueWatching || [];
+                let item = list.find(i => i.id === id);
+                const m = hpMovies.find(x => x.id === id);
+                const p = dur ? Math.floor((cur / dur) * 100) : 10;
+                if (item) { item.currentTime = cur; item.progress = p; } 
+                else { list.unshift({ ...m, currentTime: cur, progress: p }); }
+                this.currentUser.continueWatching = list.filter(i => i.id === id).concat(list.filter(i => i.id !== id));
+                this.saveUserData(); this.renderContinueWatching();
+            },
+            renderContinueWatching: function() {
+                const section = document.getElementById('continue-watching-section');
+                const container = document.getElementById('continue-watching-cards');
+                const list = this.currentUser.continueWatching || [];
+                if (list.length === 0) { section.classList.add('hidden'); return; }
+                section.classList.remove('hidden'); container.innerHTML = '';
+                list.forEach(m => {
+                    container.innerHTML += `
+                        <div class="card" onclick="app.playVideo('${m.video}', '${m.title}', ${m.id}, ${m.currentTime || 0})">
+                            <img src="${m.img}" alt="${m.title}" onerror="this.src='https://via.placeholder.com/300x450/111/d4af37?text=Afi%C5%9F+Yok'">
+       <div class="card-info">
+                                <div class="card-title">${m.title}</div>
+                                <div class="progress-bar"><div class="progress-fill" style="width: ${m.progress || 10}%"></div></div>
+                            </div>
+                        </div>`;
+                });
+            },
+            saveUserData: function() {
+                let users = JSON.parse(localStorage.getItem('hgw_users') || '[]');
+                const idx = users.findIndex(u => u.username === this.currentUser.username);
+                if (idx !== -1) { users[idx] = this.currentUser; localStorage.setItem('hgw_users', JSON.stringify(users)); localStorage.setItem('hgw_current_user', JSON.stringify(this.currentUser)); }
+            },
+            searchMovies: function(query) { this.renderMovies(hpMovies.filter(m => m.title.toLowerCase().includes(query.toLowerCase()))); },
+            openModal: function(id) { document.getElementById(id).classList.add('active'); document.getElementById('profile-dropdown').classList.remove('show'); },
+            closeModal: function(id) { document.getElementById(id).classList.remove('active'); },
+            saveProfile: function() {
+                const n = document.getElementById('edit-name').value.trim();
+                const p = document.getElementById('edit-pin').value;
+                if (n) this.currentUser.username = n;
+                if (p && p.length === 4) this.currentUser.pin = p;
+                this.saveUserData(); document.getElementById('ui-username').innerText = this.currentUser.username;
+                this.closeModal('profile-modal'); this.showToast('btn_save');
+            }
+        };
+
+        window.onload = () => app.init();
+    </script>
+
+    <!-- PWA İNDİRME BUTONU VE SERVICE WORKER KAYDI -->
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", () => {
+                navigator.serviceWorker.register("./sw.js").catch(() => {});
+            });
+        }
+
+        let deferredPrompt;
+        const installBtn = document.getElementById("installAppBtn");
+
+        window.addEventListener("beforeinstallprompt", (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+
+        installBtn?.addEventListener("click", async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                await deferredPrompt.userChoice;
+                deferredPrompt = null;
+            } else {
+                const toast = document.getElementById("toast-notification");
+                toast.innerText = "Yüklemek için siteyi HTTPS bağlantısıyla açın veya tarayıcı menüsünden 'Ana Ekrana Ekle'yi seçin.";
+                toast.style.background = "rgba(214, 175, 55, 0.95)";
+                toast.style.color = "#000";
+                toast.classList.add("show");
+                setTimeout(() => toast.classList.remove("show"), 4000);
+            }
+        });
+
+        window.addEventListener("appinstalled", () => {
+            if (installBtn) installBtn.style.display = "none";
+        });
+    </script>
+</body>
+</html>
