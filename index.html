@@ -694,7 +694,9 @@
     <script>
         if ("serviceWorker" in navigator) {
             window.addEventListener("load", () => {
-                navigator.serviceWorker.register("./sw.js").catch(() => {});
+                navigator.serviceWorker.register("./sw.js").catch((err) => {
+                    console.warn("SW kaydı başarısız:", err);
+                });
             });
         }
 
@@ -704,6 +706,9 @@
         window.addEventListener("beforeinstallprompt", (e) => {
             e.preventDefault();
             deferredPrompt = e;
+            if (installBtn) {
+                installBtn.style.display = "inline-flex";
+            }
         });
 
         installBtn?.addEventListener("click", async () => {
@@ -713,11 +718,13 @@
                 deferredPrompt = null;
             } else {
                 const toast = document.getElementById("toast-notification");
-                toast.innerText = "Yüklemek için siteyi HTTPS bağlantısıyla açın veya tarayıcı menüsünden 'Ana Ekrana Ekle'yi seçin.";
-                toast.style.background = "rgba(214, 175, 55, 0.95)";
-                toast.style.color = "#000";
-                toast.classList.add("show");
-                setTimeout(() => toast.classList.remove("show"), 4000);
+                if (toast) {
+                    toast.innerText = "Yüklemek için tarayıcı menüsünden 'Yükle ve kısayol oluştur' veya 'Ana Ekrana Ekle'yi seçin.";
+                    toast.style.background = "rgba(214, 175, 55, 0.95)";
+                    toast.style.color = "#000";
+                    toast.classList.add("show");
+                    setTimeout(() => toast.classList.remove("show"), 4000);
+                }
             }
         });
 
